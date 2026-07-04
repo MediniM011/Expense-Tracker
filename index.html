@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Spending Navigator — Blue Theme</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://kit.fontawesome.com/a2d9d8d9f0.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f3f8ff;
+    --card:#ffffff;
+    --accent:#0b79d0;
+    --accent-2:#065a9a;
+    --muted:#6b7280;
+    --glass: rgba(255,255,255,0.8);
+    --radius:14px;
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,var(--bg),#ffffff);color:#0b1220;min-height:100vh}
+
+  /* top nav */
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:transparent}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;color:#fff;font-weight:800}
+  .brand h1{margin:0;font-size:18px}
+  .nav-actions{display:flex;gap:10px;align-items:center}
+  .nav-btn{background:transparent;border:0;color:var(--accent);padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+  .nav-btn.ghost{background:transparent;border:1px solid rgba(11,121,208,0.12)}
+  .nav-btn.primary{background:var(--accent);color:#fff}
+
+  /* central area */
+  .center{display:grid;place-items:center;padding:20px 16px}
+  .card{width:100%;max-width:980px;background:var(--card);border-radius:16px;padding:22px;box-shadow:0 14px 40px rgba(7,14,29,0.06)}
+
+  /* Auth forms */
+  .auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center}
+  .auth-left{padding:14px}
+  .auth-right{background:linear-gradient(180deg,#f8fbff,#ffffff);padding:18px;border-radius:12px}
+  .big-title{font-size:22px;margin:0 0 6px}
+  .subtitle{color:var(--muted);font-size:14px;margin:0 0 12px}
+  .input{width:100%;padding:12px;border-radius:10px;border:1px solid #e6eef9;margin:8px 0}
+  .full{width:100%}
+  .btn{padding:10px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:700}
+  .btn.accent{background:var(--accent);color:#fff}
+  .btn.ghost{background:transparent;border:1px solid rgba(11,121,208,0.12);color:var(--accent)}
+
+  /* steps layout */
+  .steps{display:flex;gap:12px;align-items:center;margin-top:14px}
+  .step{padding:8px 12px;border-radius:999px;background:#f1f8ff;color:var(--accent);font-weight:700}
+
+  /* category dashboard */
+  .category-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:16px}
+  .category-card{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;min-height:140px;display:flex;flex-direction:column;justify-content:flex-end;padding:12px;color:white;box-shadow:0 12px 30px rgba(7,14,29,.06);transition:transform .18s ease,box-shadow .18s ease}
+  .category-card:hover{transform:translateY(-8px);box-shadow:0 28px 60px rgba(7,14,29,.12)}
+  .category-card .label{font-weight:800;font-size:18px;text-shadow:0 2px 12px rgba(0,0,0,0.25)}
+  .category-card .sub{font-size:13px;opacity:.95;text-shadow:0 1px 8px rgba(0,0,0,0.18)}
+  .cat-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,9,23,0.05),rgba(3,9,23,0.35));mix-blend-mode:multiply}
+
+  /* analytics page */
+  .analytics-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:14px}
+
+  /* modal */
+  .backdrop{position:fixed;inset:0;background:rgba(6,12,20,0.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:40}
+  .modal{background:var(--card);padding:18px;border-radius:12px;max-width:520px;width:100%}
+  .modal h3{margin:0 0 8px}
+  .modal .row{display:flex;gap:8px}
+  .close-btn{background:transparent;border:0;color:var(--muted);cursor:pointer}
+
+  /* footer small */
+  .small-muted{color:var(--muted);font-size:13px;margin-top:10px}
+
+  /* responsive */
+  @media (max-width:880px){
+    .auth-grid{grid-template-columns:1fr}
+    .category-card{min-height:120px}
+    .analytics-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- topbar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">SN</div>
+    <div>
+       <h1 style="margin:0;font-size:16px">Spending Navigator</h1>
+       <div style="font-size:12px;color:var(--muted)">Track · Understand · Master</div>
+    </div>
+  </div>
+
+  <div class="nav-actions">
+    <button id="btn-analytics" class="nav-btn ghost" style="display:none"><i class="fas fa-chart-pie"></i> Analytics</button>
+    <button id="btn-logout" class="nav-btn" style="display:none"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    <button id="btn-open-auth" class="nav-btn primary">Login / Sign Up</button>
+  </div>
+</div>
+
+<!-- center card -->
+<div class="center">
+  <div class="card" id="card-root" style="max-width:1100px">
+
+    <!-- REGISTER / LOGIN area (initial screen) -->
+    <div id="auth-screen">
+      <div style="display:flex;flex-direction:row;gap:20px;align-items:stretch;flex-wrap:wrap">
+        <div style="flex:1;min-width:320px;padding:8px">
+          <div style="background:linear-gradient(180deg,#f8fbff,#ffffff);padding:18px;border-radius:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div class="big-title">Welcome to Spending Navigator</div>
+                <div class="subtitle">A next-generation financial companion in blue & white theme</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-weight:800;color:var(--accent)">Secure • Offline • Private</div>
+                <div class="small-muted">Uses local storage</div>
+              </div>
+            </div>
+
+            <div class="steps" aria-hidden>
+              <div class="step">1. Register</div>
+              <div class="step">2. Login</div>
+              <div class="step">3. Set Budget</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:320px">
+          <div style="background:linear-gradient(180deg,#ffffff,#f7fbff);padding:16px;border-radius:12px">
+            <!-- REGISTER FORM -->
+            <div id="register-form">
+              <h3 style="margin:0 0 8px">Create account</h3>
+              <div class="small-muted" style="margin-bottom:12px">Enter your details to register</div>
+              <input id="reg-first" class="input" placeholder="First name" />
+              <input id="reg-last" class="input" placeholder="Last name" />
+              <input id="reg-email" class="input" placeholder="Email" type="email" />
+              <input id="reg-pass" class="input" placeholder="Password" type="password" />
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button id="btn-register" class="btn accent">Register</button>
+                <button id="btn-show-login" class="btn ghost">Already have account?</button>
+              </div>
+              <div id="reg-msg" class="small-muted"></div>
+            </div>
+
+            <!-- LOGIN FORM (hidden by default) -->
+            <div id="login-form" style="display:none">
+              <h3 style="margin:0 0 8px">Login</h3>
+              <div class="small-muted" style="margin-bottom:12px">Use your email & password</div>
+              <input id="login-email" class="input" placeholder="Email" type="email" />
+              <input id="login-pass" class="input" placeholder="Password" type="password" />
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button id="btn-login" class="btn accent">Login</button>
+                <button id="btn-show-register" class="btn ghost">Create account</button>
+              </div>
+              <div id="login-msg" class="small-muted"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUDGET PAGE -->
+    <div id="budget-screen" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <h2 style="margin:0">Set Your Monthly Budget</h2>
+          <div class="small-muted">Enter the amount you want to spend per month (₹)</div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:10px;align-items:center">
+        <input id="budget-input" class="input" placeholder="Budget in ₹" type="number" style="max-width:220px" />
+        <button id="btn-save-budget" class="btn accent">Save Budget</button>
+        <button id="btn-skip-budget" class="btn ghost">Skip</button>
+      </div>
+    </div>
+
+    <!-- CATEGORY DASHBOARD -->
+    <div id="categories-screen" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <h2 style="margin:0">Categories</h2>
+          <div class="small-muted">Tap a category to add an expense</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="text-align:right;font-size:13px;color:var(--muted)">
+            <div>Budget: ₹<span id="ui-budget">0</span></div>
+            <div>Total spent: ₹<span id="ui-spent">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="category-grid" id="category-grid">
+        <!-- cards injected -->
+      </div>
+    </div>
+
+    <!-- ANALYTICS SCREEN -->
+    <div id="analytics-screen" style="display:none">
+      <h2 style="margin:0">Analytics</h2>
+      <div class="small-muted">Spending distribution & daily pattern</div>
+      <div class="analytics-grid">
+        <div class="card">
+          <h4 style="margin-top:0">Spending by Category</h4>
+          <canvas id="pie-chart" style="max-height:320px"></canvas>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Daily Spending (this week)</h4>
+          <canvas id="bar-chart" style="max-height:220px"></canvas>
+          <div class="small-muted" style="margin-top:10px">Summary</div>
+          <div style="display:flex;justify-content:space-between;margin-top:10px">
+            <div class="small-muted">Total spent</div><div id="sum-total">₹0</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px">
+            <div class="small-muted">Budget</div><div id="sum-budget">₹0</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px">
+            <div class="small-muted">Remaining</div><div id="sum-remaining">₹0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="small-muted" style="text-align:center;margin-top:14px">Made with ♥ — Spending Navigator</div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div id="modal-backdrop" class="backdrop" aria-hidden>
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 id="modal-title">Add expense</h3>
+      <button class="close-btn" id="modal-close"><i class="fas fa-times"></i></button>
+    </div>
+    <div style="margin-top:10px">
+      <div id="modal-category" style="font-weight:700;color:var(--muted)"></div>
+      <input id="modal-amount" class="input" placeholder="Amount in ₹" type="number" />
+      <input id="modal-date" class="input" type="date" />
+      <input id="modal-note" class="input" placeholder="Note (optional)" />
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="modal-save" class="btn accent">Save</button>
+        <button id="modal-save-add" class="btn ghost">Save & Add Another</button>
+      </div>
+      <div id="modal-msg" class="small-muted" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===============================
+   Data structure & localStorage
+   =============================== */
+/*
+  Storage schema:
+  sn_users = {
+    "email@example.com": {
+      firstName, lastName, password,
+      budget: number,
+      expenses: [ {category, amount, date, note} ]
+    }
+  }
+  sn_current = email when logged in
+*/
+
+const LS = {
+  get: (k) => JSON.parse(localStorage.getItem(k)),
+  set: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+};
+
+let users = LS.get('sn_users') || {};
+let current = localStorage.getItem('sn_current') || null;
+
+/* =================================
+   UI elements and initial wiring
+   ================================= */
+const btnOpenAuth = document.getElementById('btn-open-auth');
+const btnAnalytics = document.getElementById('btn-analytics');
+const btnLogout = document.getElementById('btn-logout');
+
+const authScreen = document.getElementById('auth-screen');
+const budgetScreen = document.getElementById('budget-screen');
+const categoriesScreen = document.getElementById('categories-screen');
+const analyticsScreen = document.getElementById('analytics-screen');
+
+const registerFormEls = {
+  first: document.getElementById('reg-first'),
+  last: document.getElementById('reg-last'),
+  email: document.getElementById('reg-email'),
+  pass: document.getElementById('reg-pass'),
+  btn: document.getElementById('btn-register'),
+  msg: document.getElementById('reg-msg'),
+  showLogin: document.getElementById('btn-show-login')
+};
+const loginFormEls = {
+  email: document.getElementById('login-email'),
+  pass: document.getElementById('login-pass'),
+  btn: document.getElementById('btn-login'),
+  msg: document.getElementById('login-msg'),
+  showRegister: document.getElementById('btn-show-register')
+};
+
+const budgetInput = document.getElementById('budget-input');
+const btnSaveBudget = document.getElementById('btn-save-budget');
+const btnSkipBudget = document.getElementById('btn-skip-budget');
+
+const uiBudget = document.getElementById('ui-budget');
+const uiSpent = document.getElementById('ui-spent');
+
+const categoryGrid = document.getElementById('category-grid');
+const modalBackdrop = document.getElementById('modal-backdrop');
+const modalCategory = document.getElementById('modal-category');
+const modalAmount = document.getElementById('modal-amount');
+const modalDate = document.getElementById('modal-date');
+const modalNote = document.getElementById('modal-note');
+const modalSave = document.getElementById('modal-save');
+const modalSaveAdd = document.getElementById('modal-save-add');
+const modalClose = document.getElementById('modal-close');
+const modalTitle = document.getElementById('modal-title');
+
+const pieCanvas = document.getElementById('pie-chart');
+const barCanvas = document.getElementById('bar-chart');
+let pieChart = null, barChart = null;
+
+const sumTotal = document.getElementById('sum-total');
+const sumBudget = document.getElementById('sum-budget');
+const sumRemaining = document.getElementById('sum-remaining');
+
+/* fixed categories (as requested) */
+const CATS = [
+  { key: 'Healthcare', img: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+  { key: 'Transport',  img: 'https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=7a7e8b9b9afa3d6be2d3f4e3f7f8b9f1' },
+  { key: 'Food',       img: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=0f2b6206b6c1a060e5f0d3cd015b2f7b' },
+  { key: 'Shopping',   img: 'https://images.unsplash.com/photo-1521334884684-d80222895322?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=6c3bafc67b8a2d4c6a61f6f9e9a2f4a5' },
+  { key: 'Others',     img: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3&s=f1e7a2b1b8b6c6d6e7f8a9b0c1d2e3f4' }
+];
+
+/* ===========================
+   Helpers
+   =========================== */
+function saveUsers(){ LS.set('sn_users', users); }
+function currentUserObj(){ return current ? users[current] : null; }
+function setCurrent(email){
+  current = email;
+  if(email) localStorage.setItem('sn_current', email); else localStorage.removeItem('sn_current');
+}
+
+/* ===========================
+   AUTH: register & login
+   =========================== */
+registerFormEls.showLogin.addEventListener('click', ()=> {
+  document.getElementById('register-form').style.display='none';
+  document.getElementById('login-form').style.display='';
+});
+loginFormEls.showRegister.addEventListener('click', ()=> {
+  document.getElementById('login-form').style.display='none';
+  document.getElementById('register-form').style.display='';
+});
+
+// Register
+registerFormEls.btn.addEventListener('click', ()=>{
+  const f = registerFormEls.first.value.trim();
+  const l = registerFormEls.last.value.trim();
+  const e = registerFormEls.email.value.trim().toLowerCase();
+  const p = registerFormEls.pass.value;
+  if(!f||!l||!e||!p){ registerFormEls.msg.textContent = 'Fill all fields'; return; }
+  if(users[e]){ registerFormEls.msg.textContent = 'Account exists — login instead'; return; }
+  users[e] = { firstName:f, lastName:l, password:p, budget:0, expenses:[] };
+  saveUsers();
+  registerFormEls.msg.textContent = 'Account created. Please login.';
+  // switch to login
+  setTimeout(()=> { document.getElementById('register-form').style.display='none'; document.getElementById('login-form').style.display=''; }, 700);
+});
+
+// Login
+loginFormEls.btn.addEventListener('click', ()=>{
+  const e = loginFormEls.email.value.trim().toLowerCase();
+  const p = loginFormEls.pass.value;
+  if(!users[e] || users[e].password !== p){ loginFormEls.msg.textContent = 'Invalid credentials'; return; }
+  setCurrent(e);
+  afterLogin();
+});
+
+/* ===========================
+   After login flow
+   =========================== */
+function afterLogin(){
+  btnOpenAuth.style.display = 'none';
+  btnAnalytics.style.display = '';
+  btnLogout.style.display = '';
+  document.getElementById('auth-screen').style.display = 'none';
+  // check budget
+  const u = currentUserObj();
+  if(u && u.budget && u.budget > 0){
+    showCategories();
+  } else {
+    showBudget();
+  }
+}
+
+/* ===========================
+   Budget screen
+   =========================== */
+btnSaveBudget.addEventListener('click', ()=>{
+  const v = parseFloat(budgetInput.value || 0);
+  if(!v || v <= 0){ alert('Enter valid budget'); return; }
+  users[current].budget = v;
+  saveUsers();
+  showCategories();
+});
+btnSkipBudget.addEventListener('click', ()=> showCategories());
+
+function showBudget(){
+  document.getElementById('auth-screen').style.display='none';
+  budgetScreen.style.display='';
+  categoriesScreen.style.display='none';
+  analyticsScreen.style.display='none';
+}
+
+/* ===========================
+   Categories dashboard
+   =========================== */
+function showCategories(){
+  budgetScreen.style.display='none';
+  categoriesScreen.style.display='';
+  analyticsScreen.style.display='none';
+  renderCategoryCards();
+  refreshTopNumbers();
+}
+
+/* populate category cards with images and labels */
+function renderCategoryCards(){
+  categoryGrid.innerHTML = '';
+  CATS.forEach(c=>{
+    const card = document.createElement('div');
+    card.className = 'category-card';
+    card.style.backgroundImage = `url(${c.img})`;
+    card.style.backgroundSize = 'cover';
+    card.style.backgroundPosition = 'center';
+    card.innerHTML = `<div class="cat-overlay"></div>
+                      <div style="position:relative;z-index:2">
+                        <div class="label">${c.key}</div>
+                        <div class="sub">Tap to add expense</div>
+                      </div>`;
+    card.addEventListener('click', ()=> openAddModal(c.key));
+    categoryGrid.appendChild(card);
+  });
+}
+
+/* ===========================
+   Add Expense modal
+   =========================== */
+function openAddModal(category){
+  if(!current){ alert('Please login'); return; }
+  modalBackdrop.style.display = 'flex';
+  modalCategory.textContent = category;
+  modalTitle.textContent = `Add expense — ${category}`;
+  modalAmount.value = '';
+  modalDate.value = new Date().toISOString().slice(0,10);
+  modalNote.value = '';
+  document.getElementById('modal-msg').textContent = '';
+  // store category in dataset
+  modalBackdrop.dataset.cat = category;
+}
+modalClose.addEventListener('click', ()=> modalBackdrop.style.display='none');
+modalBackdrop.addEventListener('click', (e)=> { if(e.target === modalBackdrop) modalBackdrop.style.display='none'; });
+
+// Save functions
+function handleSaveExpense(keepOpen=false){
+  const cat = modalBackdrop.dataset.cat || modalCategory.textContent;
+  const amount = parseFloat(modalAmount.value || 0);
+  const date = modalDate.value;
+  const note = modalNote.value || '';
+  if(!amount || !date){ document.getElementById('modal-msg').textContent = 'Enter amount and date'; return; }
+  users[current].expenses.push({ category:cat, amount, date, note });
+  saveUsers();
+  document.getElementById('modal-msg').textContent = 'Saved ✓';
+  refreshTopNumbers();
+  if(!keepOpen) modalBackdrop.style.display='none'; else modalAmount.value='';
+}
+modalSave.addEventListener('click', ()=> handleSaveExpense(false));
+modalSaveAdd.addEventListener('click', ()=> handleSaveExpense(true));
+
+/* ===========================
+   Analytics screen
+   =========================== */
+btnAnalytics.addEventListener('click', ()=> showAnalytics());
+function showAnalytics(){
+  analyticsScreen.style.display='';
+  categoriesScreen.style.display='none';
+  budgetScreen.style.display='none';
+  renderCharts();
+}
+
+/* charts rendering */
+function renderCharts(){
+  const u = currentUserObj();
+  if(!u) return;
+  const expenses = u.expenses || [];
+
+  // category totals (fixed categories)
+  const labels = CATS.map(c=>c.key);
+  const totals = labels.map(l => expenses.filter(e=>e.category===l).reduce((s,x)=>s+x.amount,0));
+
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(pieCanvas.getContext('2d'), {
+    type:'pie',
+    data:{ labels, datasets:[{ data:totals, backgroundColor: ['#4285F4','#34A853','#FBBC05','#EA4335','#9C27B0'] }] },
+    options:{ plugins:{ legend:{ position:'bottom' } } }
+  });
+
+  // bar chart: daily sums for current week (Sun..Sat)
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const daySums = [0,0,0,0,0,0,0];
+  expenses.forEach(e=>{
+    const d = new Date(e.date + 'T00:00:00');
+    if(!isNaN(d)) daySums[d.getDay()] += e.amount;
+  });
+
+  if(barChart) barChart.destroy();
+  barChart = new Chart(barCanvas.getContext('2d'), {
+    type:'bar',
+    data:{ labels:dayNames, datasets:[{ label:'Daily Spend', data:daySums, backgroundColor:'#36a2eb' }] },
+    options:{ scales:{ y:{ beginAtZero:true } } }
+  });
+
+  // summary
+  const total = expenses.reduce((s,e)=>s+e.amount,0);
+  sumTotal.textContent = '₹' + total.toFixed(0);
+  sumBudget.textContent = '₹' + (u.budget || 0);
+  sumRemaining.textContent = '₹' + Math.max(0, (u.budget||0) - total).toFixed(0);
+}
+
+/* ===========================
+   UI helpers & top numbers
+   =========================== */
+function refreshTopNumbers(){
+  const u = currentUserObj();
+  if(!u) return;
+  const total = (u.expenses || []).reduce((s,e)=>s+e.amount,0);
+  uiBudget.textContent = (u.budget||0);
+  uiSpent.textContent = total.toFixed(0);
+
+  // if over budget show small alert near topbar (we'll show nav analytics etc)
+  if(total > (u.budget||0) && (u.budget || 0) > 0){
+    // subtle browser alert? We'll flash the analytics button
+    btnAnalytics.classList.add('primary');
+  } else {
+    btnAnalytics.classList.remove('primary');
+  }
+}
+
+/* ===========================
+   Logout & session
+   =========================== */
+btnLogout.addEventListener('click', ()=>{
+  setCurrent(null);
+  // show auth again
+  document.getElementById('auth-screen').style.display = '';
+  budgetScreen.style.display = 'none';
+  categoriesScreen.style.display = 'none';
+  analyticsScreen.style.display = 'none';
+  btnAnalytics.style.display = 'none';
+  btnLogout.style.display = 'none';
+  btnOpenAuth.style.display = '';
+});
+
+/* ===========================
+   Auto-login on load
+   =========================== */
+(function init(){
+  // inject listeners for open auth
+  btnOpenAuth.addEventListener('click', ()=> {
+    // show auth UI - it's visible in the centered card already
+    document.getElementById('auth-screen').style.display = '';
+    document.getElementById('register-form').style.display = '';
+    document.getElementById('login-form').style.display = 'none';
+  });
+
+  // If a user was logged in before (session)
+  if(current && users[current]){
+    // show main
+    afterLogin();
+  } else {
+    // show auth screen initially
+    document.getElementById('auth-screen').style.display = '';
+  }
+})();
+
+</script>
+</body>
+</html>
