@@ -1,5 +1,5 @@
+require("dotenv").config();
 // ===== Spending Navigator Backend (Single File) =====
-console.log("Server.js started");
 const express = require("express");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
@@ -134,7 +134,6 @@ app.get("/api/analytics", auth, async (req,res)=>{
   } catch(err){ res.status(500).json({ msg: err.message }); }
 });
 
-console.log("About to start server");
 // --- START SERVER ---
 app.listen(PORT, ()=> {
     console.log(`Server running on http://localhost:${PORT}`);
