@@ -362,27 +362,107 @@ loginFormEls.showRegister.addEventListener('click', ()=> {
 });
 
 // Register
-registerFormEls.btn.addEventListener('click', ()=>{
-  const f = registerFormEls.first.value.trim();
-  const l = registerFormEls.last.value.trim();
-  const e = registerFormEls.email.value.trim().toLowerCase();
-  const p = registerFormEls.pass.value;
-  if(!f||!l||!e||!p){ registerFormEls.msg.textContent = 'Fill all fields'; return; }
-  if(users[e]){ registerFormEls.msg.textContent = 'Account exists — login instead'; return; }
-  users[e] = { firstName:f, lastName:l, password:p, budget:0, expenses:[] };
-  saveUsers();
-  registerFormEls.msg.textContent = 'Account created. Please login.';
-  // switch to login
-  setTimeout(()=> { document.getElementById('register-form').style.display='none'; document.getElementById('login-form').style.display=''; }, 700);
+registerFormEls.btn.addEventListener("click", async () => {
+    const firstName = registerFormEls.first.value.trim();
+    const lastName = registerFormEls.last.value.trim();
+    const email = registerFormEls.email.value.trim().toLowerCase();
+    const password = registerFormEls.pass.value;
+
+    if (!firstName || !lastName || !email || !password) {
+        registerFormEls.msg.textContent = "Fill all fields";
+        return;
+    }
+
+    try {
+        const response = await fetch("http://localhost:5000/api/auth/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                firstName,
+                lastName,
+                email,
+                password
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            registerFormEls.msg.textContent = "Registration Successful! Please Login.";
+
+            setTimeout(() => {
+                document.getElementById("register-form").style.display = "none";
+                document.getElementById("login-form").style.display = "";
+            }, 1000);
+
+        } else {
+            registerFormEls.msg.textContent = data.msg;
+        }
+
+    } catch (err) {
+        console.error(err);
+        registerFormEls.msg.textContent = "Server Error";
+    }
 });
 
 // Login
-loginFormEls.btn.addEventListener('click', ()=>{
-  const e = loginFormEls.email.value.trim().toLowerCase();
-  const p = loginFormEls.pass.value;
-  if(!users[e] || users[e].password !== p){ loginFormEls.msg.textContent = 'Invalid credentials'; return; }
-  setCurrent(e);
-  afterLogin();
+loginFormEls.btn.addEventListener("click", async () => {
+
+    const email = loginFormEls.email.value.trim().toLowerCase();
+    const password = loginFormEls.pass.value;
+
+    if (!email || !password) {
+        loginFormEls.msg.textContent = "Enter email and password";
+        return;
+    }
+
+    try {
+
+        const response = await fetch("http://localhost:5000/api/auth/login", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                email,
+                password
+            })
+
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            // Save JWT Token
+            localStorage.setItem("token", data.token);
+
+            // Save logged-in user
+            localStorage.setItem("currentUser", JSON.stringify(data.user));
+
+            loginFormEls.msg.textContent = "Login Successful!";
+
+            afterLogin();
+
+        } else {
+
+            loginFormEls.msg.textContent = data.msg;
+
+        }
+
+    } catch (err) {
+
+        console.error(err);
+
+        loginFormEls.msg.textContent = "Server Error";
+
+    }
+
 });
 
 /* ===========================
