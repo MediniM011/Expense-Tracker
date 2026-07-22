@@ -343,7 +343,8 @@ const CATS = [
    Helpers
    =========================== */
 function saveUsers(){ LS.set('sn_users', users); }
-function currentUserObj(){ return current ? users[current] : null; }
+function currentUserObj()
+  { return JSON.parse(localStorage.getItem("currentUser")); }
 function setCurrent(email){
   current = email;
   if(email) localStorage.setItem('sn_current', email); else localStorage.removeItem('sn_current');
@@ -485,12 +486,57 @@ function afterLogin(){
 /* ===========================
    Budget screen
    =========================== */
-btnSaveBudget.addEventListener('click', ()=>{
-  const v = parseFloat(budgetInput.value || 0);
-  if(!v || v <= 0){ alert('Enter valid budget'); return; }
-  users[current].budget = v;
-  saveUsers();
-  showCategories();
+btnSaveBudget.addEventListener("click", async () => {
+
+    const budget = parseFloat(budgetInput.value);
+
+    if (!budget || budget <= 0) {
+        alert("Enter valid budget");
+        return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+
+        const response = await fetch("http://localhost:5000/api/budget", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+                "x-auth-token": token
+            },
+
+            body: JSON.stringify({
+                budget
+            })
+
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            const user = JSON.parse(localStorage.getItem("currentUser"));
+            user.budget = budget;
+            localStorage.setItem("currentUser", JSON.stringify(user));
+
+            showCategories();
+
+        } else {
+
+            alert(data.msg);
+
+        }
+
+    } catch (err) {
+
+        console.error(err);
+        alert("Server Error");
+
+    }
+
 });
 btnSkipBudget.addEventListener('click', ()=> showCategories());
 
@@ -535,7 +581,10 @@ function renderCategoryCards(){
    Add Expense modal
    =========================== */
 function openAddModal(category){
-  if(!current){ alert('Please login'); return; }
+  console.log("openAddModal called");
+  const token = localStorage.getItem("token");
+
+  if(!token){ alert('Please login'); return; }
   modalBackdrop.style.display = 'flex';
   modalCategory.textContent = category;
   modalTitle.textContent = `Add expense — ${category}`;
@@ -550,17 +599,71 @@ modalClose.addEventListener('click', ()=> modalBackdrop.style.display='none');
 modalBackdrop.addEventListener('click', (e)=> { if(e.target === modalBackdrop) modalBackdrop.style.display='none'; });
 
 // Save functions
-function handleSaveExpense(keepOpen=false){
-  const cat = modalBackdrop.dataset.cat || modalCategory.textContent;
-  const amount = parseFloat(modalAmount.value || 0);
-  const date = modalDate.value;
-  const note = modalNote.value || '';
-  if(!amount || !date){ document.getElementById('modal-msg').textContent = 'Enter amount and date'; return; }
-  users[current].expenses.push({ category:cat, amount, date, note });
-  saveUsers();
-  document.getElementById('modal-msg').textContent = 'Saved ✓';
-  refreshTopNumbers();
-  if(!keepOpen) modalBackdrop.style.display='none'; else modalAmount.value='';
+async function handleSaveExpense(keepOpen = false) {
+
+    const category = modalBackdrop.dataset.cat || modalCategory.textContent;
+    const amount = parseFloat(modalAmount.value);
+    const date = modalDate.value;
+    const note = modalNote.value;
+
+    if (!amount || !date) {
+        document.getElementById("modal-msg").textContent =
+            "Enter amount and date";
+        return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+
+        const response = await fetch("http://localhost:5000/api/expenses", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+                "x-auth-token": token
+            },
+
+            body: JSON.stringify({
+                category,
+                amount,
+                date,
+                note
+            })
+
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+
+            document.getElementById("modal-msg").textContent =
+                "Expense Saved ✓";
+
+            refreshTopNumbers();
+
+            if (!keepOpen) {
+                modalBackdrop.style.display = "none";
+            } else {
+                modalAmount.value = "";
+                modalNote.value = "";
+            }
+
+        } else {
+
+            document.getElementById("modal-msg").textContent = data.msg;
+
+        }
+
+    } catch (err) {
+
+        console.error(err);
+        document.getElementById("modal-msg").textContent =
+            "Server Error";
+
+    }
+
 }
 modalSave.addEventListener('click', ()=> handleSaveExpense(false));
 modalSaveAdd.addEventListener('click', ()=> handleSaveExpense(true));
