@@ -199,6 +199,13 @@
         <!-- cards injected -->
       </div>
     </div>
+    <hr style="margin:30px 0">
+
+    <h3>Expense History</h3>
+
+    <div id="expense-list">
+      <p>No expenses yet.</p>
+    </div>
 
     <!-- ANALYTICS SCREEN -->
     <div id="analytics-screen" style="display:none">
@@ -408,6 +415,32 @@ registerFormEls.btn.addEventListener("click", async () => {
     }
 });
 
+
+async function loadExpenses(){
+
+    try{
+
+        const response = await fetch(
+            "http://localhost:5000/api/expenses",
+            {
+                headers:{
+                    "x-auth-token":localStorage.getItem("token")
+                }
+            }
+        );
+
+        const expenses = await response.json();
+
+        renderExpenseList(expenses);
+
+    }catch(err){
+
+        console.error(err);
+
+    }
+
+}
+
 // Login
 loginFormEls.btn.addEventListener("click", async () => {
 
@@ -440,17 +473,20 @@ loginFormEls.btn.addEventListener("click", async () => {
 
         if (response.ok) {
 
-            // Save JWT Token
-            localStorage.setItem("token", data.token);
+          // Save JWT Token
+          localStorage.setItem("token", data.token);
 
-            // Save logged-in user
-            localStorage.setItem("currentUser", JSON.stringify(data.user));
+          // Save logged-in user
+          localStorage.setItem("currentUser", JSON.stringify(data.user));
 
-            loginFormEls.msg.textContent = "Login Successful!";
+          loginFormEls.msg.textContent = "Login Successful!";
 
-            afterLogin();
+          // Load expenses from MongoDB
+          await loadExpenses();
 
-        } else {
+          afterLogin();
+
+        }else {
 
             loginFormEls.msg.textContent = data.msg;
 
@@ -721,20 +757,77 @@ function renderCharts(){
 /* ===========================
    UI helpers & top numbers
    =========================== */
-function refreshTopNumbers(){
-  const u = currentUserObj();
-  if(!u) return;
-  const total = (u.expenses || []).reduce((s,e)=>s+e.amount,0);
-  uiBudget.textContent = (u.budget||0);
-  uiSpent.textContent = total.toFixed(0);
+async function refreshTopNumbers() {
 
-  // if over budget show small alert near topbar (we'll show nav analytics etc)
-  if(total > (u.budget||0) && (u.budget || 0) > 0){
-    // subtle browser alert? We'll flash the analytics button
-    btnAnalytics.classList.add('primary');
-  } else {
-    btnAnalytics.classList.remove('primary');
-  }
+    const token = localStorage.getItem("token");
+
+    if (!token) return;
+
+    try {
+
+        const response = await fetch(
+            "http://localhost:5000/api/analytics",
+            {
+                headers: {
+                    "x-auth-token": token
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        uiBudget.textContent = data.budget;
+        uiSpent.textContent = data.totalSpent;
+
+        if (data.totalSpent > data.budget && data.budget > 0) {
+            btnAnalytics.classList.add("primary");
+        } else {
+            btnAnalytics.classList.remove("primary");
+        }
+
+    } catch (err) {
+
+        console.error(err);
+
+    }
+
+}
+
+function renderExpenseList(expenses){
+
+    const expenseList = document.getElementById("expense-list");
+
+    if(expenses.length === 0){
+        expenseList.innerHTML = "<p>No expenses yet.</p>";
+        return;
+    }
+
+    expenseList.innerHTML = "";
+
+    expenses.forEach(expense => {
+
+        expenseList.innerHTML += `
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:12px;
+                margin:10px 0;
+                border:1px solid #ddd;
+                border-radius:10px;
+                background:white;
+            ">
+                <div>
+                    <strong>${expense.category}</strong><br>
+                    ₹${expense.amount}<br>
+                    <small>${new Date(expense.date).toLocaleDateString()}</small><br>
+                    <small>${expense.note || ""}</small>
+                </div>
+            </div>
+        `;
+
+    });
+
 }
 
 /* ===========================
