@@ -441,6 +441,50 @@ async function loadExpenses(){
 
 }
 
+//Delete
+async function deleteExpense(id){
+
+    const confirmDelete = confirm("Are you sure you want to delete this expense?");
+
+    if(!confirmDelete) return;
+
+    try{
+
+        const response = await fetch(
+            `http://localhost:5000/api/expenses/${id}`,
+            {
+                method: "DELETE",
+                headers:{
+                    "x-auth-token": localStorage.getItem("token")
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if(response.ok){
+
+            // Reload expenses
+            await loadExpenses();
+
+            // Refresh Budget & Total Spent
+            await refreshTopNumbers();
+
+        }else{
+
+            alert(data.msg);
+
+        }
+
+    }catch(err){
+
+        console.error(err);
+        alert("Server Error");
+
+    }
+
+}
+
 // Login
 loginFormEls.btn.addEventListener("click", async () => {
 
@@ -817,16 +861,41 @@ function renderExpenseList(expenses){
                 border-radius:10px;
                 background:white;
             ">
+
                 <div>
                     <strong>${expense.category}</strong><br>
                     ₹${expense.amount}<br>
                     <small>${new Date(expense.date).toLocaleDateString()}</small><br>
                     <small>${expense.note || ""}</small>
                 </div>
+
+                <button
+                    class="delete-btn"
+                    data-id="${expense._id}"
+                    style="
+                        background:#e53935;
+                        color:white;
+                        border:none;
+                        padding:8px 12px;
+                        border-radius:6px;
+                        cursor:pointer;
+                    ">
+                    🗑 Delete
+                </button>
+
             </div>
         `;
 
     });
+    document.querySelectorAll(".delete-btn").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+        deleteExpense(button.dataset.id);
+
+    });
+
+  });
 
 }
 

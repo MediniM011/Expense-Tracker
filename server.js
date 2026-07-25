@@ -134,6 +134,31 @@ app.get("/api/analytics", auth, async (req,res)=>{
   } catch(err){ res.status(500).json({ msg: err.message }); }
 });
 
+//---Delete
+// DELETE EXPENSE
+app.delete("/api/expenses/:id", auth, async (req, res) => {
+
+    try {
+
+        const expense = await Expense.findOneAndDelete({
+            _id: req.params.id,
+            user: req.user
+        });
+
+        if (!expense) {
+            return res.status(404).json({ msg: "Expense not found" });
+        }
+
+        res.json({ msg: "Expense deleted successfully" });
+
+    } catch (err) {
+
+        res.status(500).json({ msg: err.message });
+
+    }
+
+});
+
 // --- START SERVER ---
 app.listen(PORT, ()=> {
     console.log(`Server running on http://localhost:${PORT}`);
