@@ -485,6 +485,48 @@ async function deleteExpense(id){
 
 }
 
+//Update function
+async function editExpense(id){
+
+    try{
+
+        const response = await fetch(
+            "http://localhost:5000/api/expenses",
+            {
+                headers:{
+                    "x-auth-token": localStorage.getItem("token")
+                }
+            }
+        );
+
+        const expenses = await response.json();
+
+        const expense = expenses.find(e => e._id === id);
+
+        if(!expense){
+            alert("Expense not found");
+            return;
+        }
+
+        // Open the existing modal
+        openAddModal(expense.category);
+
+        // Fill the fields
+        modalAmount.value = expense.amount;
+        modalDate.value = expense.date.substring(0,10);
+        modalNote.value = expense.note || "";
+
+        // Save expense id for update
+        modalBackdrop.dataset.editId = expense._id;
+
+    }catch(err){
+
+        console.error(err);
+
+    }
+
+}
+
 // Login
 loginFormEls.btn.addEventListener("click", async () => {
 
@@ -693,24 +735,31 @@ async function handleSaveExpense(keepOpen = false) {
     }
 
     const token = localStorage.getItem("token");
+    const editId = modalBackdrop.dataset.editId;
 
     try {
 
-        const response = await fetch("http://localhost:5000/api/expenses", {
+        const url = editId
+          ? `http://localhost:5000/api/expenses/${editId}`
+          : "http://localhost:5000/api/expenses";
 
-            method: "POST",
+        const method = editId ? "PUT" : "POST";
 
-            headers: {
-                "Content-Type": "application/json",
-                "x-auth-token": token
-            },
+        const response = await fetch(url, {
 
-            body: JSON.stringify({
-                category,
-                amount,
-                date,
-                note
-            })
+          method,
+
+          headers: {
+            "Content-Type": "application/json",
+            "x-auth-token": token
+          },
+
+          body: JSON.stringify({
+            category,
+            amount,
+            date,
+            note
+          })
 
         });
 
@@ -718,10 +767,13 @@ async function handleSaveExpense(keepOpen = false) {
 
         if (response.ok) {
 
-            document.getElementById("modal-msg").textContent =
-                "Expense Saved ✓";
+          document.getElementById("modal-msg").textContent =
+            editId ? "Expense Updated ✓" : "Expense Saved ✓";
 
-            refreshTopNumbers();
+        delete modalBackdrop.dataset.editId;
+
+        await loadExpenses();
+        await refreshTopNumbers();
 
             if (!keepOpen) {
                 modalBackdrop.style.display = "none";
@@ -869,19 +921,37 @@ function renderExpenseList(expenses){
                     <small>${expense.note || ""}</small>
                 </div>
 
-                <button
+                <div style="display:flex; gap:8px;">
+
+                  <button
+                    class="edit-btn"
+                    data-id="${expense._id}"
+                    style="
+                      background:#1976d2;
+                      color:white;
+                      border:none;
+                      padding:8px 12px;
+                      border-radius:6px;
+                      cursor:pointer;
+                    ">
+                    ✏️ 
+                  </button>
+
+                  <button
                     class="delete-btn"
                     data-id="${expense._id}"
                     style="
-                        background:#e53935;
-                        color:white;
-                        border:none;
-                        padding:8px 12px;
-                        border-radius:6px;
-                        cursor:pointer;
+                      background:#e53935;
+                      color:white;
+                      border:none;
+                      padding:8px 12px;
+                      border-radius:6px;
+                      cursor:pointer;
                     ">
-                    🗑 Delete
-                </button>
+                    🗑 
+                  </button>
+
+                </div>
 
             </div>
         `;
@@ -896,6 +966,15 @@ function renderExpenseList(expenses){
     });
 
   });
+  document.querySelectorAll(".edit-btn").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+        editExpense(button.dataset.id);
+
+    });
+
+});
 
 }
 

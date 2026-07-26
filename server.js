@@ -159,6 +159,42 @@ app.delete("/api/expenses/:id", auth, async (req, res) => {
 
 });
 
+// UPDATE EXPENSE
+app.put("/api/expenses/:id", auth, async (req, res) => {
+
+    try {
+
+        const { category, amount, date, note } = req.body;
+
+        const expense = await Expense.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                user: req.user
+            },
+            {
+                category,
+                amount,
+                date,
+                note
+            },
+            {
+                new: true
+            }
+        );
+
+        if (!expense) {
+            return res.status(404).json({ msg: "Expense not found" });
+        }
+
+        res.json(expense);
+
+    } catch (err) {
+
+        res.status(500).json({ msg: err.message });
+
+    }
+
+});
 // --- START SERVER ---
 app.listen(PORT, ()=> {
     console.log(`Server running on http://localhost:${PORT}`);
