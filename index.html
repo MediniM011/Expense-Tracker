@@ -113,7 +113,7 @@
             <div style="display:flex;justify-content:space-between;align-items:center">
               <div>
                 <div class="big-title">Welcome to Spending Navigator</div>
-                <div class="subtitle">A next-generation financial companion in blue & white theme</div>
+                <!--<div class="subtitle">A next-generation financial companion in blue & white theme</div>-->
               </div>
               <div style="text-align:right">
                 <div style="font-weight:800;color:var(--accent)">Secure • Offline • Private</div>
@@ -122,9 +122,9 @@
             </div>
 
             <div class="steps" aria-hidden>
-              <div class="step">1. Register</div>
+              <!--<div class="step">1. Register</div>
               <div class="step">2. Login</div>
-              <div class="step">3. Set Budget</div>
+              <div class="step">3. Set Budget</div>-->
             </div>
           </div>
         </div>
@@ -198,14 +198,32 @@
       <div class="category-grid" id="category-grid">
         <!-- cards injected -->
       </div>
-    </div>
+      
     <hr style="margin:30px 0">
 
     <h3>Expense History</h3>
 
+    <input
+        type="text"
+        id="search-expense"
+        placeholder="🔍 Search by category or note..."
+        style="
+            width:100%;
+            padding:12px;
+            margin-bottom:15px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            font-size:15px;
+        "
+    >
+
     <div id="expense-list">
-      <p>No expenses yet.</p>
+        <p>No expenses yet.</p>
     </div>
+
+    </div>
+
+  </div>
 
     <!-- ANALYTICS SCREEN -->
     <div id="analytics-screen" style="display:none">
@@ -328,6 +346,7 @@ const modalSave = document.getElementById('modal-save');
 const modalSaveAdd = document.getElementById('modal-save-add');
 const modalClose = document.getElementById('modal-close');
 const modalTitle = document.getElementById('modal-title');
+const searchExpense = document.getElementById("search-expense");
 
 const pieCanvas = document.getElementById('pie-chart');
 const barCanvas = document.getElementById('bar-chart');
@@ -430,8 +449,24 @@ async function loadExpenses(){
         );
 
         const expenses = await response.json();
+        const searchText = searchExpense.value.toLowerCase().trim();
 
-        renderExpenseList(expenses);
+        console.log("Expenses:", expenses);
+        console.log("Search:", searchText);
+
+        const filteredExpenses = expenses.filter(expense => {
+
+          return (
+            expense.category.toLowerCase().includes(searchText) ||
+            (expense.note && expense.note.toLowerCase().includes(searchText))
+          );
+
+        });
+
+        console.log("Expenses from API:", expenses);
+      console.log("Filtered Expenses:", filteredExpenses);
+
+      renderExpenseList(filteredExpenses);
 
     }catch(err){
 
@@ -892,6 +927,7 @@ async function refreshTopNumbers() {
 function renderExpenseList(expenses){
 
     const expenseList = document.getElementById("expense-list");
+    const searchExpense = document.getElementById("search-expense");
 
     if(expenses.length === 0){
         expenseList.innerHTML = "<p>No expenses yet.</p>";
@@ -1014,6 +1050,10 @@ btnLogout.addEventListener('click', ()=>{
     document.getElementById('auth-screen').style.display = '';
   }
 })();
+// search 
+searchExpense.addEventListener("input", () => {
+    loadExpenses();
+});
 
 </script>
 </body>
