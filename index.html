@@ -203,19 +203,46 @@
 
     <h3>Expense History</h3>
 
-    <input
+    <div
+      style="
+        display:flex;
+        gap:10px;
+        margin-bottom:15px;
+      "
+    >
+
+      <input
         type="text"
         id="search-expense"
         placeholder="🔍 Search by category or note..."
         style="
-            width:100%;
+            flex:1;
             padding:12px;
-            margin-bottom:15px;
             border:1px solid #ccc;
             border-radius:8px;
             font-size:15px;
         "
-    >
+      >
+
+      <select
+        id="filter-category"
+        style="
+            width:180px;
+            padding:12px;
+            border:1px solid #ccc;
+            border-radius:8px;
+            font-size:15px;
+          "
+        >
+        <option value="All">All Categories</option>
+        <option value="Food">Food</option>
+        <option value="Transport">Transport</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Healthcare">Healthcare</option>
+        <option value="Others">Others</option>
+      </select>
+
+    </div>
 
     <div id="expense-list">
         <p>No expenses yet.</p>
@@ -347,6 +374,7 @@ const modalSaveAdd = document.getElementById('modal-save-add');
 const modalClose = document.getElementById('modal-close');
 const modalTitle = document.getElementById('modal-title');
 const searchExpense = document.getElementById("search-expense");
+const filterCategory = document.getElementById("filter-category");
 
 const pieCanvas = document.getElementById('pie-chart');
 const barCanvas = document.getElementById('bar-chart');
@@ -450,18 +478,25 @@ async function loadExpenses(){
 
         const expenses = await response.json();
         const searchText = searchExpense.value.toLowerCase().trim();
+        const selectedCategory = filterCategory.value;
 
         console.log("Expenses:", expenses);
         console.log("Search:", searchText);
 
         const filteredExpenses = expenses.filter(expense => {
 
-          return (
+          const matchesSearch =
             expense.category.toLowerCase().includes(searchText) ||
-            (expense.note && expense.note.toLowerCase().includes(searchText))
-          );
+            (expense.note &&
+            expense.note.toLowerCase().includes(searchText));
 
-        });
+        const matchesCategory =
+          selectedCategory === "All" ||
+          expense.category === selectedCategory;
+
+        return matchesSearch && matchesCategory;
+
+      });
 
         console.log("Expenses from API:", expenses);
       console.log("Filtered Expenses:", filteredExpenses);
@@ -1054,6 +1089,7 @@ btnLogout.addEventListener('click', ()=>{
 searchExpense.addEventListener("input", () => {
     loadExpenses();
 });
+filterCategory.addEventListener("change", loadExpenses);
 
 </script>
 </body>
