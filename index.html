@@ -325,7 +325,7 @@ const LS = {
 };
 
 let users = LS.get('sn_users') || {};
-let current = localStorage.getItem('sn_current') || null;
+let current = null;
 
 /* =================================
    UI elements and initial wiring
@@ -401,7 +401,6 @@ function currentUserObj()
   { return JSON.parse(localStorage.getItem("currentUser")); }
 function setCurrent(email){
   current = email;
-  if(email) localStorage.setItem('sn_current', email); else localStorage.removeItem('sn_current');
 }
 
 /* ===========================
@@ -1052,38 +1051,56 @@ function renderExpenseList(expenses){
 /* ===========================
    Logout & session
    =========================== */
-btnLogout.addEventListener('click', ()=>{
-  setCurrent(null);
-  // show auth again
-  document.getElementById('auth-screen').style.display = '';
-  budgetScreen.style.display = 'none';
-  categoriesScreen.style.display = 'none';
-  analyticsScreen.style.display = 'none';
-  btnAnalytics.style.display = 'none';
-  btnLogout.style.display = 'none';
-  btnOpenAuth.style.display = '';
+btnLogout.addEventListener("click", () => {
+
+    // Clear local variables
+    setCurrent(null);
+
+    // Remove login session
+    localStorage.removeItem("token");
+    localStorage.removeItem("currentUser");
+
+    // Show Login Screen
+    document.getElementById("auth-screen").style.display = "";
+
+    budgetScreen.style.display = "none";
+    categoriesScreen.style.display = "none";
+    analyticsScreen.style.display = "none";
+
+    btnAnalytics.style.display = "none";
+    btnLogout.style.display = "none";
+    btnOpenAuth.style.display = "";
+
 });
 
 /* ===========================
    Auto-login on load
    =========================== */
 (function init(){
-  // inject listeners for open auth
-  btnOpenAuth.addEventListener('click', ()=> {
-    // show auth UI - it's visible in the centered card already
-    document.getElementById('auth-screen').style.display = '';
-    document.getElementById('register-form').style.display = '';
-    document.getElementById('login-form').style.display = 'none';
-  });
 
-  // If a user was logged in before (session)
-  if(current && users[current]){
-    // show main
-    afterLogin();
-  } else {
-    // show auth screen initially
-    document.getElementById('auth-screen').style.display = '';
-  }
+    btnOpenAuth.addEventListener('click', () => {
+
+        document.getElementById("auth-screen").style.display = "";
+        document.getElementById("register-form").style.display = "";
+        document.getElementById("login-form").style.display = "none";
+
+    });
+
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("currentUser"));
+
+    if(token && user){
+
+        current = user.email;      // Restore current user
+        afterLogin();              // Skip login screen
+        loadExpenses();            // Load expense history
+
+    }else{
+
+        document.getElementById("auth-screen").style.display = "";
+
+    }
+
 })();
 // search 
 searchExpense.addEventListener("input", () => {
