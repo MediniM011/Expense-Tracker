@@ -881,10 +881,26 @@ function showAnalytics(){
 }
 
 /* charts rendering */
-function renderCharts(){
-  const u = currentUserObj();
-  if(!u) return;
-  const expenses = u.expenses || [];
+async function renderCharts(){
+  const token = localStorage.getItem("token");
+
+  try {
+
+    const response = await fetch(
+        "http://localhost:5000/api/expenses",
+        {
+            headers: {
+                "x-auth-token": token
+            }
+        }
+    );
+
+    const expenses = await response.json();
+    console.log("Expenses:",expenses);
+
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+
+    if(!currentUser) return;
 
   // category totals (fixed categories)
   const labels = CATS.map(c=>c.key);
@@ -901,10 +917,12 @@ function renderCharts(){
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const daySums = [0,0,0,0,0,0,0];
   expenses.forEach(e=>{
-    const d = new Date(e.date + 'T00:00:00');
+    const d = new Date(e.date);
     if(!isNaN(d)) daySums[d.getDay()] += e.amount;
   });
 
+  console.log("Day Sums:", daySums);
+  console.log(expenses[0]);
   if(barChart) barChart.destroy();
   barChart = new Chart(barCanvas.getContext('2d'), {
     type:'bar',
@@ -915,8 +933,20 @@ function renderCharts(){
   // summary
   const total = expenses.reduce((s,e)=>s+e.amount,0);
   sumTotal.textContent = '₹' + total.toFixed(0);
-  sumBudget.textContent = '₹' + (u.budget || 0);
-  sumRemaining.textContent = '₹' + Math.max(0, (u.budget||0) - total).toFixed(0);
+  sumBudget.textContent =
+    '₹' + (currentUser.budget || 0);
+
+  sumRemaining.textContent =
+    '₹' + Math.max(
+      0,
+      (currentUser.budget || 0) - total
+    ).toFixed(0);
+    }
+    catch(err){
+
+      console.error(err);
+
+  }
 }
 
 /* ===========================
